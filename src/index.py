@@ -315,7 +315,13 @@ async def send_email(email: EmailRequest, graph: Graph = Depends(get_graph)):
         raise handle_odata_error(e)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-        
+
+@app.get("/init")
+async def root_init():
+    global graph_client
+    graph_client = await initialize_graph()
+    return {"message": "initialized"}
+    
 # global graph_client
 # # Initialize Graph client once
 # graph_client = await initialize_graph()
