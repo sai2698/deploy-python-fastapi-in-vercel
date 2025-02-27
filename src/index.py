@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
 import os
@@ -16,26 +16,26 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-# MongoDB connection
-# Get MongoDB URI from environment variables
-MONGODB_URI = "mongodb+srv://naveendevarapalli99:Naveen123@cluster0.jmg62pd.mongodb.net/"
-DB_NAME = "ott"
-COLLECTION_NAME = "catalogue"
+# MongoDB connection configuration
+MONGODB_URI = os.environ.get("MONGODB_URI")
+DB_NAME = os.environ.get("DB_NAME", "mydb")
+COLLECTION_NAME = os.environ.get("COLLECTION_NAME", "items")
 
-# Create a MongoDB client
-client = None
-
-@app.on_event("startup")
-async def startup_db_client():
-    global client
+# Database connection handling
+async def get_database():
+    """
+    Create a connection to the MongoDB database and yield the database object
+    """
     if not MONGODB_URI:
         raise HTTPException(status_code=500, detail="MongoDB URI not configured")
-    client = AsyncIOMotorClient(MONGODB_URI)
     
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    global client
-    if client:
+    client = AsyncIOMotorClient(MONGODB_URI)
+    try:
+        # Connect to the database
+        db = client[DB_NAME]
+        yield db
+    finally:
+        # Close the connection when done
         client.close()
 
 @app.get("/")
@@ -43,15 +43,11 @@ async def root():
     return {"message": "Welcome to the MongoDB API"}
 
 @app.get("/getall", response_model=List[Dict[str, Any]])
-async def get_all_items():
+async def get_all_items(db = Depends(get_database)):
     """
     Retrieve all documents from the MongoDB collection
     """
-    if not client:
-        raise HTTPException(status_code=500, detail="Database client not initialized")
-    
     try:
-        db = client[DB_NAME]
         collection = db[COLLECTION_NAME]
         
         # Get all documents from collection
