@@ -17,9 +17,9 @@ app.add_middleware(
 )
 
 # MongoDB connection configuration
-MONGODB_URI = os.environ.get("MONGODB_URI")
-DB_NAME = os.environ.get("DB_NAME", "mydb")
-COLLECTION_NAME = os.environ.get("COLLECTION_NAME", "items")
+MONGODB_URI = "mongodb+srv://naveendevarapalli99:Naveen123@cluster0.jmg62pd.mongodb.net/"
+DB_NAME = "ott"
+COLLECTION_NAME = "catalogue"
 
 # Database connection handling
 async def get_database():
