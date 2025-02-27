@@ -2,13 +2,12 @@ from fastapi import FastAPI
 from src.dtos.ISayHelloDto import ISayHelloDto
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import JSONResponse
-import configparser
 from typing import List, Optional
 import json
 from pydantic import BaseModel
+from types import SimpleNamespace
 
 # Import your Graph class
-from configparser import SectionProxy
 from azure.identity import DeviceCodeCredential
 from msgraph import GraphServiceClient
 from msgraph.generated.users.item.user_item_request_builder import UserItemRequestBuilder
@@ -42,21 +41,21 @@ async def hello_message(dto: ISayHelloDto):
     return {"message": f"Hello {dto.message}"}
 
 class Graph:
-    settings: SectionProxy
+    settings: any
     device_code_credential: DeviceCodeCredential
     user_client: GraphServiceClient
 
-    def __init__(self, config: SectionProxy):
+    def __init__(self, config):
         self.settings = config
-        client_id = self.settings['clientId']
-        tenant_id = self.settings['tenantId']
-        graph_scopes = self.settings['graphUserScopes'].split(' ')
+        client_id = self.settings.clientId
+        tenant_id = self.settings.tenantId
+        graph_scopes = self.settings.graphUserScopes.split(' ')
 
         self.device_code_credential = DeviceCodeCredential(client_id, tenant_id=tenant_id)
         self.user_client = GraphServiceClient(self.device_code_credential, graph_scopes)
 
     async def get_user_token(self):
-        graph_scopes = self.settings['graphUserScopes']
+        graph_scopes = self.settings.graphUserScopes
         access_token = self.device_code_credential.get_token(graph_scopes)
         return access_token.token
 
@@ -148,18 +147,24 @@ class EmailRequest(BaseModel):
 # Initialize Graph client and authenticate
 async def initialize_graph():
     try:
-        # Load settings
-        config = configparser.ConfigParser()
-        config.read(['config.cfg', 'config.dev.cfg'])
-        azure_settings = config['azure']
+        # Define settings directly instead of using config parser
+        azure_settings = {
+            'clientId': '0e8e54e4-c386-4a78-a465-5d9f7aaf376d',
+            'tenantId': 'a2f14507-fab7-4185-9f8d-bbb265ce04e5',
+            'graphUserScopes': 'Files.Read'
+        }
         
-        client = Graph(azure_settings)
+        # Convert to object with attribute access
+        settings = SimpleNamespace(**azure_settings)
         
-        # # Force authentication by getting a token
+        client = Graph(settings)
+        
+        # Force authentication by getting a token
+        # Uncomment these lines when ready to authenticate
         # token = await client.get_user_token()
         # print("Authentication successful. Token acquired.")
         
-        # # Get user info to verify connection
+        # Get user info to verify connection
         # user = await client.get_user()
         # print(f"Connected as: {user.display_name} ({user.mail or user.user_principal_name})")
         
@@ -229,15 +234,10 @@ def parse_drive_item_response(response):
         result["items"].append(item_data)
     
     return result
-    
-# # Create FastAPI app
-# app = FastAPI(title="Microsoft Graph API", 
-#               description="A REST API for Microsoft Graph integration",
-#               version="1.0.0")
 
 # API endpoints
-@app.get("/")
-async def root():
+@app.get("/api")
+async def api_root():
     return {"message": "Microsoft Graph API"}
 
 @app.get("/token", response_model=dict)
@@ -264,24 +264,18 @@ async def get_me(graph: Graph = Depends(get_graph)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-        
 @app.get("/drive-contents")
 async def get_drive_contents(graph: Graph = Depends(get_graph)):
     try:
         result = await graph.make_graph_call()
-        #print(result)
-        #parsed_response = parse_drive_item_response(result)
-        
-        # Convert the result to a JSON-serializable format
-        return {"items": [{"id":item.id,"name":item.name} for item in result.value]}
+        return {"items": [{"id": item.id, "name": item.name} for item in result.value]}
     except ODataError as e:
         raise handle_odata_error(e)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/content/{item_id}")
-async def get_drive_contents(item_id: str, graph: Graph = Depends(get_graph)):
+async def get_drive_content(item_id: str, graph: Graph = Depends(get_graph)):
     try:
         # Use the item_id in your graph call
         result = await graph.make_graph_call_content(item_id=item_id)
@@ -317,11 +311,10 @@ async def send_email(email: EmailRequest, graph: Graph = Depends(get_graph)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/init")
-async def root_init():
+async def initialize():
     global graph_client
-    graph_client = await initialize_graph()
-    return {"message": "initialized"}
-    
-# global graph_client
-# # Initialize Graph client once
-# graph_client = await initialize_graph()
+    try:
+        graph_client = await initialize_graph()
+        return {"message": "Graph client initialized successfully"}
+    except Exception as e:
+        return {"error": str(e)}
