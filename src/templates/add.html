@@ -1,0 +1,33 @@
+<!-- add.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Item</title>
+    <script>
+        async function addItem(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+            data.genre = data.genre.split(',');
+            await fetch('/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            window.location.href = 'index.html';
+        }
+    </script>
+</head>
+<body>
+    <h1>Add New Item</h1>
+    <form onsubmit="addItem(event)">
+        <input type="text" name="id" placeholder="ID" required><br>
+        <input type="text" name="title" placeholder="Title" required><br>
+        <input type="text" name="genre" placeholder="Genre (comma-separated)" required><br>
+        <input type="text" name="year" placeholder="Year" required><br>
+        <input type="text" name="thumbnail" placeholder="Thumbnail URL"><br>
+        <textarea name="description" placeholder="Description" required></textarea><br>
+        <button type="submit">Add</button>
+    </form>
+</body>
+</html>
