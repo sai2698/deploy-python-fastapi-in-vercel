@@ -1,68 +1,95 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel, Field
-import os
-from typing import List, Dict, Any
-from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel,HttpUrl
+from typing import List, Dict, Any, Optional
 
 app = FastAPI()
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
-)
+# Serve static files (if needed)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# MongoDB connection configuration
+# Configure templates
+templates = Jinja2Templates(directory="templates")
+
+# MongoDB Configuration
 MONGODB_URI = "mongodb+srv://naveendevarapalli99:Naveen123@cluster0.jmg62pd.mongodb.net/"
 DB_NAME = "ott"
 COLLECTION_NAME = "catalogue"
 
-# Database connection handling
 async def get_database():
-    """
-    Create a connection to the MongoDB database and yield the database object
-    """
     if not MONGODB_URI:
         raise HTTPException(status_code=500, detail="MongoDB URI not configured")
-    
     client = AsyncIOMotorClient(MONGODB_URI)
     try:
-        # Connect to the database
         db = client[DB_NAME]
         yield db
     finally:
-        # Close the connection when done
         client.close()
 
-@app.get("/")
-async def root():
-    return {"message": "Welcome to the MongoDB API"}
+# Catalogue Item Model
+class CatalogueItem(BaseModel):
+    id: str
+    title: str
+    genre: List[str]
+    year: str
+    thumbnail: str
+    description: str
+    url: Optional[str] = ""
 
+# Serve the HTML templates
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/add", response_class=HTMLResponse)
+async def add_page(request: Request):
+    return templates.TemplateResponse("add.html", {"request": request})
+
+# API Endpoints
 @app.get("/getall", response_model=List[Dict[str, Any]])
-async def get_all_items(db = Depends(get_database)):
-    """
-    Retrieve all documents from the MongoDB collection
-    """
+async def get_all_items(db=Depends(get_database)):
+    collection = db[COLLECTION_NAME]
+    cursor = collection.find({})
+    documents = await cursor.to_list(length=None)
+    for doc in documents:
+        if "_id" in doc:
+            doc["_id"] = str(doc["_id"])
+    return documents
+
+@app.post("/add_item", response_model=Dict[str, str])
+async def add_item(item: CatalogueItem, db=Depends(get_database)):
     try:
         collection = db[COLLECTION_NAME]
-        
-        # Get all documents from collection
-        cursor = collection.find({})
-        documents = await cursor.to_list(length=None)
-        
-        # MongoDB returns documents with ObjectId which is not JSON serializable
-        # Convert ObjectId to string for each document
-        processed_documents = []
-        for doc in documents:
-            if "_id" in doc and hasattr(doc["_id"], "__str__"):
-                doc["_id"] = str(doc["_id"])
-            processed_documents.append(doc)
-            
-        return processed_documents
-    
+        result = await collection.insert_one(item.model_dump())
+        return {"message": "Item added successfully", "id": str(result.inserted_id)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/delete/{item_id}", response_model=Dict[str, str])
+async def delete_item(item_id: str, db=Depends(get_database)):
+    collection = db[COLLECTION_NAME]
+    result = await collection.delete_one({"id": item_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"message": "Item deleted successfully"}
+
+@app.get("/get/{item_id}", response_model=Dict[str, Any])
+async def get_item(item_id: str, db=Depends(get_database)):
+    collection = db[COLLECTION_NAME]
+    item = await collection.find_one({"id": item_id})
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    item["_id"] = str(item["_id"])
+    return item
+
+@app.put("/update/{item_id}", response_model=Dict[str, str])
+async def update_item(item_id: str, updated_item: CatalogueItem, db=Depends(get_database)):
+    collection = db[COLLECTION_NAME]
+    result = await collection.update_one({"id": item_id}, {"$set": updated_item.dict()})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"message": "Item updated successfully"}
