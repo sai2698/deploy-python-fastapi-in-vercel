@@ -63,7 +63,7 @@ async def get_all_items(db=Depends(get_database)):
 async def add_item(item: CatalogueItem, db=Depends(get_database)):
     try:
         collection = db[COLLECTION_NAME]
-        result = await collection.insert_one(item.model_dump())
+        result = await collection.insert_one(item.dict())  # Change model_dump() to dict()
         return {"message": "Item added successfully", "id": str(result.inserted_id)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
