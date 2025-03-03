@@ -333,7 +333,9 @@
                 });
                 
                 if (!response.ok) {
-                    throw new Error('Failed to add item');
+                    return response.json().then(error => {
+                       throw new Error(error.detail); // Extracts the "detail" field
+                  });
                 }
                 
                 // Show success message and redirect
