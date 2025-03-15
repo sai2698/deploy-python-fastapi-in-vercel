@@ -57,7 +57,8 @@ async def get_all_items(db=Depends(get_database)):
     for doc in documents:
         if "_id" in doc:
             doc["_id"] = str(doc["_id"])
-    return documents
+    return documents[::-1]  # Reverse the array before returning
+
 
 @app.post("/add_item", response_model=Dict[str, str])
 async def add_item(item: CatalogueItem, db=Depends(get_database)):
