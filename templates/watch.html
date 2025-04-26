@@ -33,6 +33,7 @@
             border-radius: 10px;
             background-color: #000;
             margin-bottom: 20px;
+            cursor: pointer;
         }
 
         .description {
@@ -54,14 +55,32 @@
 </head>
 <body>
     <div class="container">
-        <a href="/" class="back-link">← Back to Home</a>
+        <a href="/home" class="back-link">← Back to Home</a>
         <h1>{{ movie.title }}</h1>
         <div class="meta">{{ movie.genre | join(', ') }} | {{ movie.year }}</div>
-        <video controls>
+
+        <!-- Video element with multiple source formats -->
+        <video id="videoPlayer" controls>
             <source src="{{ movie.url }}" type="video/mp4">
+            <source src="{{ movie.url }}" type="video/webm">
+            <source src="{{ movie.url }}" type="video/x-matroska"> <!-- MKV support -->
             Your browser does not support the video tag.
         </video>
+
         <div class="description">{{ movie.description }}</div>
     </div>
+
+    <!-- Fullscreen toggle script -->
+    <script>
+        const video = document.getElementById('videoPlayer');
+
+        video.addEventListener('dblclick', () => {
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                video.requestFullscreen();
+            }
+        });
+    </script>
 </body>
 </html>
