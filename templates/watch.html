@@ -82,14 +82,14 @@
         });
     </script>
 
-    <!-- Include mkv-web library -->
+    <!-- Include mkv-player library -->
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@latest/dist/ffmpeg.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mkv-web@latest/dist/mkv-web.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mkv-player@latest/dist/mkv-player.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const videoElement = document.getElementById('videoPlayer');
-            const mkvWeb = new MkvWeb(videoElement);
-            mkvWeb.load('{{ movie.url }}');
+            const mkvPlayer = new MkvPlayer(videoElement);
+            mkvPlayer.load('{{ movie.url }}');
         });
     </script>
 </body>
