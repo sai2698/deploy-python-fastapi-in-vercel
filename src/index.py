@@ -48,6 +48,30 @@ async def home(request: Request):
 async def add_page(request: Request):
     return templates.TemplateResponse("add.html", {"request": request})
 
+@app.get("/home", response_class=HTMLResponse)
+async def home(request: Request):
+    collection = db[COLLECTION_NAME]
+    cursor = collection.find({})
+    documents = await cursor.to_list(length=None)
+    for doc in documents:
+        if "_id" in doc:
+            doc["_id"] = str(doc["_id"])
+    return templates.TemplateResponse("home.html", {"request": request, "movies": documents[::-1]})
+
+@app.get("/watch/{movie_id}", response_class=HTMLResponse)
+async def watch_movie(movie_id: str, request: Request):
+    collection = db[COLLECTION_NAME]
+    cursor = collection.find({})
+    movies = await cursor.to_list(length=None)
+    for doc in movies:
+        if "_id" in doc:
+            doc["_id"] = str(doc["_id"])
+    movie = next((m for m in movies if m["id"] == movie_id), None)
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    return templates.TemplateResponse("watch.html", {"request": request, "movie": movie})
+
+
 # API Endpoints
 @app.get("/getall", response_model=List[Dict[str, Any]])
 async def get_all_items(db=Depends(get_database)):
