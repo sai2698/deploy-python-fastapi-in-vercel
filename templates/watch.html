@@ -88,8 +88,18 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const videoElement = document.getElementById('videoPlayer');
-            const mkvPlayer = new MkvPlayer(videoElement);
-            mkvPlayer.load('{{ movie.url }}');
+            if (videoElement) {
+                console.log('Video element found:', videoElement);
+                const mkvPlayer = new MkvPlayer(videoElement);
+                console.log('MkvPlayer instance created:', mkvPlayer);
+                mkvPlayer.load('{{ movie.url }}').then(() => {
+                    console.log('MKV video loaded successfully.');
+                }).catch((error) => {
+                    console.error('Error loading MKV video:', error);
+                });
+            } else {
+                console.error('Video element not found.');
+            }
         });
     </script>
 </body>
