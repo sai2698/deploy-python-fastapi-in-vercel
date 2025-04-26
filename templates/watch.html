@@ -52,8 +52,11 @@
             text-decoration: underline;
         }
     </style>
+
+<link href="https://vjs.zencdn.net/8.22.0/video-js.css" rel="stylesheet" />
 </head>
 <body>
+    
     <div class="container">
         <a href="/home" class="back-link">← Back to Home</a>
         <h1>{{ movie.title }}</h1>
@@ -63,6 +66,27 @@
         <video id="videoPlayer" controls>
             <source src="{{ movie.url }}" type="video/webm">
             Your browser does not support the video tag.
+        </video>
+
+        <video
+            id="my-video"
+            class="video-js"
+            controls
+            preload="auto"
+            width="640"
+            height="264"
+            poster="{{ movie.thumhnail }}"
+            data-setup="{}"
+        >
+            <source src="{{ movie.url }}" type="video/mp4" />
+            <source src="{{ movie.url }}" type="video/webm" />
+            <p class="vjs-no-js">
+            To view this video please enable JavaScript, and consider upgrading to a
+            web browser that
+            <a href="https://videojs.com/html5-video-support/" target="_blank"
+                >supports HTML5 video</a
+            >
+            </p>
         </video>
 
         <div class="description">{{ movie.description }}</div>
@@ -80,5 +104,7 @@
             }
         });
     </script>
+
+<script src="https://vjs.zencdn.net/8.22.0/video.min.js"></script>
 </body>
 </html>
