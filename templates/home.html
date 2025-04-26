@@ -19,79 +19,70 @@
             font-weight: bold;
         }
 
-        .section-title {
-            font-size: 1.5em;
-            margin: 20px;
-        }
-
-        .movie-row {
-            display: flex;
-            overflow-x: auto;
-            padding: 0 20px 20px;
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+            padding: 20px;
         }
 
         .movie-card {
-            flex: 0 0 auto;
-            width: 200px;
-            margin-right: 15px;
             background-color: #222;
-            border-radius: 8px;
+            border-radius: 10px;
             overflow: hidden;
-            transition: transform 0.3s;
+            transition: transform 0.3s ease;
         }
 
         .movie-card:hover {
             transform: scale(1.05);
-            cursor: pointer;
         }
 
-        .movie-card img {
+        .thumbnail {
             width: 100%;
-            display: block;
+            height: 320px;
+            object-fit: cover;
         }
 
         .movie-info {
             padding: 10px;
         }
 
-        .movie-title {
-            font-size: 1em;
-            margin: 0 0 5px;
+        .title {
+            font-size: 1.1em;
+            margin: 0;
+            color: #fff;
         }
 
-        .movie-genre {
-            font-size: 0.8em;
+        .meta {
+            font-size: 0.85em;
             color: #aaa;
+            margin-top: 4px;
+        }
+
+        .desc {
+            margin-top: 8px;
+            font-size: 0.9em;
+            color: #ccc;
         }
 
         a {
             text-decoration: none;
             color: inherit;
         }
-
-        /* Hide scrollbar in Webkit browsers */
-        .movie-row::-webkit-scrollbar {
-            display: none;
-        }
-
-        .movie-row {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
     </style>
 </head>
 <body>
     <header>StreamFlix</header>
 
-    <div class="section-title">Recommended For You</div>
-    <div class="movie-row">
+    <div class="grid">
         {% for movie in movies %}
-        <a href="{{ movie.url }}">
+        <a href="/watch/{{ movie.id }}">
             <div class="movie-card">
-                <img src="{{ movie.thumbnail }}" alt="{{ movie.title }}">
+                <img class="thumbnail" src="{{ movie.thumbnail }}" alt="{{ movie.title }}">
                 <div class="movie-info">
-                    <div class="movie-title">{{ movie.title }}</div>
-                    <div class="movie-genre">{{ movie.genre | join(', ') }}</div>
+                    <p class="title">{{ movie.title }}</p>
+                    <p class="meta">{{ movie.genre | join(', ') }} | {{ movie.year }}</p>
+                    <p class="desc">{{ movie.description[:80] }}{% if movie.description|length > 80 %}...{% endif %}</p>
                 </div>
             </div>
         </a>
