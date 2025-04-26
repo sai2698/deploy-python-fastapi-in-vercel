@@ -49,7 +49,7 @@ async def add_page(request: Request):
     return templates.TemplateResponse("add.html", {"request": request})
 
 @app.get("/home", response_class=HTMLResponse)
-async def home(db=Depends(get_database),request: Request):
+async def home(request: Request,db=Depends(get_database)):
     collection = db[COLLECTION_NAME]
     cursor = collection.find({})
     documents = await cursor.to_list(length=None)
@@ -59,7 +59,7 @@ async def home(db=Depends(get_database),request: Request):
     return templates.TemplateResponse("home.html", {"request": request, "movies": documents[::-1]})
 
 @app.get("/watch/{movie_id}", response_class=HTMLResponse)
-async def watch_movie(movie_id: str, db=Depends(get_database),request: Request):
+async def watch_movie(movie_id: str,request: Request,db=Depends(get_database)):
     collection = db[COLLECTION_NAME]
     cursor = collection.find({})
     movies = await cursor.to_list(length=None)
