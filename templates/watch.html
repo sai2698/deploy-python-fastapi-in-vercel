@@ -63,6 +63,7 @@
         <!-- Video element for MKV playback -->
         <video id="videoPlayer" controls poster="{{ movie.thumbnail }}">
             <source src="{{ movie.url }}" type="video/webm">
+            <source src="{{ movie.url }}" type="video/mp4">
             Your browser does not support the video tag.
         </video>
 
@@ -78,27 +79,6 @@
                 document.exitFullscreen();
             } else {
                 video.requestFullscreen();
-            }
-        });
-    </script>
-
-    <!-- Include mkv-player library -->
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@latest/dist/ffmpeg.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mkv-player@latest/dist/mkv-player.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const videoElement = document.getElementById('videoPlayer');
-            if (videoElement) {
-                console.log('Video element found:', videoElement);
-                const mkvPlayer = new MkvPlayer(videoElement);
-                console.log('MkvPlayer instance created:', mkvPlayer);
-                mkvPlayer.load('{{ movie.url }}').then(() => {
-                    console.log('MKV video loaded successfully.');
-                }).catch((error) => {
-                    console.error('Error loading MKV video:', error);
-                });
-            } else {
-                console.error('Video element not found.');
             }
         });
     </script>
