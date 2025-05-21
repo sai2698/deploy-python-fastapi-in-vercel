@@ -5,8 +5,17 @@ from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel,HttpUrl
 from typing import List, Dict, Any, Optional
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Or better: [ "https://*.github.dev" ]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Serve static files (if needed)
 app.mount("/static", StaticFiles(directory="static"), name="static")
