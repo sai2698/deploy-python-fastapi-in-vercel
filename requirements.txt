@@ -6,6 +6,10 @@ pydantic~=1.10.4
 
 jinja2
 
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+
 motor>=2.5.0
 configparser==6.0.0
 json5==0.9.14
