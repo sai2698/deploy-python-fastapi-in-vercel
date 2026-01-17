@@ -145,26 +145,23 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 
 # ===================== CONFIG =====================
-ENABLE_AUTH = False  # 🔴 Set False to disable auth globally
+ENABLE_AUTH = False  # 🔴 Toggle auth here
 
 SECRET_KEY = "CHANGE_THIS_SECRET_KEY"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_DAYS = 90  # 3 months
-
-# MONGODB_URI = "mongodb+srv://naveendevarapalli99:Naveen123@cluster0.jmg62pd.mongodb.net/"
-# DB_NAME = "ott"
-# COLLECTION_NAME = "catalogue"
+ACCESS_TOKEN_EXPIRE_DAYS = 90
 
 MONGODB_URI = "mongodb+srv://naveendevarapalli99:Naveen123@cluster0.jmg62pd.mongodb.net/"
 DB_NAME = "ott"
 COLLECTION_NAME = "catalogue"
-
 USERS_COLLECTION = "users"
-
 # =================================================
 
 app = FastAPI()
-security = HTTPBearer()
+
+# 🔥 IMPORTANT FIX
+security = HTTPBearer(auto_error=False)
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 app.add_middleware(
@@ -178,7 +175,6 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-
 # ===================== DATABASE =====================
 async def get_database():
     client = AsyncIOMotorClient(MONGODB_URI)
@@ -186,7 +182,6 @@ async def get_database():
         yield client[DB_NAME]
     finally:
         client.close()
-
 
 # ===================== MODELS =====================
 class CatalogueItem(BaseModel):
@@ -198,43 +193,41 @@ class CatalogueItem(BaseModel):
     description: str
     url: Optional[str] = ""
 
-
 class LoginRequest(BaseModel):
     username: str
     password: str
-
 
 class LoginResponse(BaseModel):
     name: str
     token: str
 
-
 # ===================== AUTH UTILS =====================
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
-
 def verify_password(password: str, hashed: str) -> bool:
     return pwd_context.verify(password, hashed)
-
 
 def create_access_token(data: dict):
     expire = datetime.utcnow() + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
     data.update({"exp": expire})
     return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
 
-
 async def authenticate(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db=Depends(get_database),
 ):
+    # 🔓 Auth disabled → allow all
     if not ENABLE_AUTH:
         return None
 
-    token = credentials.credentials
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
+
         if not username:
             raise HTTPException(status_code=401, detail="Invalid token")
 
@@ -247,13 +240,11 @@ async def authenticate(
     except JWTError:
         raise HTTPException(status_code=401, detail="Token expired or invalid")
 
-
 # ===================== LOGIN =====================
 @app.post("/login", response_model=LoginResponse)
 async def login(data: LoginRequest, db=Depends(get_database)):
     users = db[USERS_COLLECTION]
 
-    # Auto-create default admin
     admin = await users.find_one({"username": "admin"})
     if not admin:
         await users.insert_one({
@@ -268,39 +259,27 @@ async def login(data: LoginRequest, db=Depends(get_database)):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     token = create_access_token({"sub": user["username"]})
-
-    return {
-        "name": user.get("name", user["username"]),
-        "token": token
-    }
-
+    return {"name": user.get("name", user["username"]), "token": token}
 
 # ===================== UI ROUTES =====================
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-
 @app.get("/home", response_class=HTMLResponse)
 async def home(request: Request, db=Depends(get_database)):
-    collection = db[COLLECTION_NAME]
-    docs = await collection.find({}).to_list(None)
+    docs = await db[COLLECTION_NAME].find({}).to_list(None)
     for d in docs:
         d["_id"] = str(d["_id"])
     return templates.TemplateResponse("home.html", {"request": request, "movies": docs[::-1]})
 
-
 @app.get("/watch/{movie_id}", response_class=HTMLResponse)
 async def watch(movie_id: str, request: Request, db=Depends(get_database)):
-    collection = db[COLLECTION_NAME]
-    movies = await collection.find({}).to_list(None)
-    for m in movies:
-        m["_id"] = str(m["_id"])
-    movie = next((m for m in movies if m["id"] == movie_id), None)
+    movie = await db[COLLECTION_NAME].find_one({"id": movie_id})
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found")
+    movie["_id"] = str(movie["_id"])
     return templates.TemplateResponse("watch.html", {"request": request, "movie": movie})
-
 
 # ===================== API ROUTES =====================
 @app.get("/getall", response_model=List[Dict[str, Any]])
@@ -313,7 +292,6 @@ async def get_all_items(
         d["_id"] = str(d["_id"])
     return docs[::-1]
 
-
 @app.post("/add_item")
 async def add_item(
     item: CatalogueItem,
@@ -322,7 +300,6 @@ async def add_item(
 ):
     await db[COLLECTION_NAME].insert_one(item.dict())
     return {"message": "Item added successfully"}
-
 
 @app.delete("/delete/{item_id}")
 async def delete_item(
@@ -335,7 +312,6 @@ async def delete_item(
         raise HTTPException(status_code=404, detail="Item not found")
     return {"message": "Item deleted"}
 
-
 @app.get("/get/{item_id}")
 async def get_item(
     item_id: str,
@@ -347,7 +323,6 @@ async def get_item(
         raise HTTPException(status_code=404, detail="Item not found")
     item["_id"] = str(item["_id"])
     return item
-
 
 @app.put("/update/{item_id}")
 async def update_item(
