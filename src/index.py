@@ -151,9 +151,14 @@ SECRET_KEY = "CHANGE_THIS_SECRET_KEY"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 90  # 3 months
 
+# MONGODB_URI = "mongodb+srv://naveendevarapalli99:Naveen123@cluster0.jmg62pd.mongodb.net/"
+# DB_NAME = "ott"
+# COLLECTION_NAME = "catalogue"
+
 MONGODB_URI = "mongodb+srv://naveendevarapalli99:Naveen123@cluster0.jmg62pd.mongodb.net/"
 DB_NAME = "ott"
 COLLECTION_NAME = "catalogue"
+
 USERS_COLLECTION = "users"
 
 # =================================================
