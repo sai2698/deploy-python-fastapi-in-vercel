@@ -377,6 +377,8 @@ USERS_COLLECTION = "users"
 PROFILES_COLLECTION = "profiles"
 CONTINUE_COLLECTION = "continue_watching"
 DOWNLOADS_COLLECTION = "downloads"
+USER_SETTINGS_COLLECTION = "user_settings"
+
 # =================================================
 
 app = FastAPI()
@@ -443,6 +445,34 @@ class Download(BaseModel):
     username: str
     movie_id: str
     downloaded_at: datetime = datetime.utcnow()
+
+# ===================== USER SETTINGS =====================
+class AccountInfo(BaseModel):
+    name: str = "Guest"
+    email: Optional[str] = None
+    dob: Optional[str] = None
+
+class Preferences(BaseModel):
+    language: str = "English"
+    maturityLevel: str = "All"
+
+class Settings(BaseModel):
+    wifiOnly: bool = True
+
+class UserSettings(BaseModel):
+    accountInfo: AccountInfo
+    preferences: Preferences
+    settings: Settings
+
+
+# ===================== PROFILES (NEW STRUCTURE) =====================
+class ProfileCreate(BaseModel):
+    name: str
+    avatar: str   # "1", "2", "3"
+
+class ProfileUpdate(BaseModel):
+    name: Optional[str]
+    avatar: Optional[str]
 
 # ===================== AUTH =====================
 def hash_password(password: str) -> str:
@@ -569,4 +599,79 @@ async def delete_item(item_id: str, db=Depends(get_database)):
         raise HTTPException(status_code=404)
     return {"message": "Item deleted"}
 
+@app.get("/api/user/settings")
+async def get_user_settings(username: str, db=Depends(get_database)):
+    col = db[USER_SETTINGS_COLLECTION]
 
+    settings = await col.find_one({"username": username})
+    if not settings:
+        settings = {
+            "username": username,
+            "accountInfo": {"name": "Guest", "email": None, "dob": None},
+            "preferences": {"language": "English", "maturityLevel": "All"},
+            "settings": {"wifiOnly": True},
+            "updated_at": datetime.utcnow()
+        }
+        await col.insert_one(settings)
+
+    settings["_id"] = str(settings["_id"])
+    return settings
+
+@app.get("/api/profiles")
+async def get_profiles(username: str, db=Depends(get_database)):
+    profiles = await db[PROFILES_COLLECTION].find({"username": username}).to_list(None)
+
+    for p in profiles:
+        p["_id"] = str(p["_id"])
+
+    return profiles
+
+@app.post("/api/profiles")
+async def create_profile(
+    username: str,
+    data: ProfileCreate,
+    db=Depends(get_database)
+):
+    profile = {
+        "id": str(int(datetime.utcnow().timestamp() * 1000)),
+        "username": username,
+        "name": data.name,
+        "avatar": data.avatar,
+        "created_at": datetime.utcnow()
+    }
+
+    await db[PROFILES_COLLECTION].insert_one(profile)
+    return {"message": "Profile created", "profile": profile}
+
+@app.put("/api/profiles/{profile_id}")
+async def update_profile(
+    profile_id: str,
+    username: str,
+    data: ProfileUpdate,
+    db=Depends(get_database)
+):
+    update_data = {k: v for k, v in data.dict().items() if v is not None}
+
+    if not update_data:
+        raise HTTPException(status_code=400, detail="Nothing to update")
+
+    result = await db[PROFILES_COLLECTION].update_one(
+        {"id": profile_id, "username": username},
+        {"$set": update_data}
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    return {"message": "Profile updated"}
+
+@app.delete("/api/profiles/{profile_id}")
+async def delete_profile(profile_id: str, username: str, db=Depends(get_database)):
+    result = await db[PROFILES_COLLECTION].delete_one(
+        {"id": profile_id, "username": username}
+    )
+
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    return {"message": "Profile deleted"}
