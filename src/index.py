@@ -675,3 +675,24 @@ async def delete_profile(profile_id: str, username: str, db=Depends(get_database
         raise HTTPException(status_code=404, detail="Profile not found")
 
     return {"message": "Profile deleted"}
+
+
+# ===================== UI ROUTES =====================
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/home", response_class=HTMLResponse)
+async def home(request: Request, db=Depends(get_database)):
+    docs = await db[COLLECTION_NAME].find({}).to_list(None)
+    for d in docs:
+        d["_id"] = str(d["_id"])
+    return templates.TemplateResponse("home.html", {"request": request, "movies": docs[::-1]})
+
+@app.get("/watch/{movie_id}", response_class=HTMLResponse)
+async def watch(movie_id: str, request: Request, db=Depends(get_database)):
+    movie = await db[COLLECTION_NAME].find_one({"id": movie_id})
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    movie["_id"] = str(movie["_id"])
+    return templates.TemplateResponse("watch.html", {"request": request, "movie": movie})
