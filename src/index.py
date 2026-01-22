@@ -700,3 +700,13 @@ async def watch(movie_id: str, request: Request, db=Depends(get_database)):
         raise HTTPException(status_code=404, detail="Movie not found")
     movie["_id"] = str(movie["_id"])
     return templates.TemplateResponse("watch.html", {"request": request, "movie": movie})
+
+
+@app.get("/get/{item_id}", response_model=Dict[str, Any])
+async def get_item(item_id: str, db=Depends(get_database)):
+    collection = db[COLLECTION_NAME]
+    item = await collection.find_one({"id": item_id})
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    item["_id"] = str(item["_id"])
+    return item
