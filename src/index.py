@@ -299,7 +299,7 @@
 #         d["_id"] = str(d["_id"])
 #     return docs[::-1]
 
-# @app.post("/add_item")
+# @app.post("")
 # async def add_item(
 #     item: CatalogueItem,
 #     db=Depends(get_database),
@@ -681,6 +681,10 @@ async def delete_profile(profile_id: str, username: str, db=Depends(get_database
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/add", response_class=HTMLResponse)
+async def add_page(request: Request):
+    return templates.TemplateResponse("add.html", {"request": request})
 
 @app.get("/home", response_class=HTMLResponse)
 async def home(request: Request, db=Depends(get_database)):
