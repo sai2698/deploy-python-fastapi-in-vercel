@@ -710,3 +710,11 @@ async def get_item(item_id: str, db=Depends(get_database)):
         raise HTTPException(status_code=404, detail="Item not found")
     item["_id"] = str(item["_id"])
     return item
+
+@app.put("/update/{item_id}", response_model=Dict[str, str])
+async def update_item(item_id: str, updated_item: CatalogueItem, db=Depends(get_database)):
+    collection = db[COLLECTION_NAME]
+    result = await collection.update_one({"id": item_id}, {"$set": updated_item.dict()})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"message": "Item updated successfully"}
