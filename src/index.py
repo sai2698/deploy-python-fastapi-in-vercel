@@ -752,7 +752,7 @@ PROFILES_COLLECTION = "profiles"
 CONTINUE_COLLECTION = "continue_watching"
 DOWNLOADS_COLLECTION = "downloads"
 USER_SETTINGS_COLLECTION = "user_settings"
-
+TV_COLLECTION = "channels"
 # =================================================
 
 app = FastAPI()
@@ -1044,6 +1044,16 @@ async def get_all(db=Depends(get_database)):
     data = await get_catalogue_cached(db)
     return data
 
+@app.get("/tv")
+async def get_all(db=Depends(get_database)):
+    # Serve from in-memory cache
+    docs = await db[TV_COLLECTION].find({}).to_list(None)
+    # Normalize _id to str for JSON and reverse order as in your original code
+    for d in docs:
+        if "_id" in d:
+            d["_id"] = str(d["_id"])
+    return docs[::-1]
+    
 @app.post("/add_item")
 async def add_item(item: CatalogueItem, db=Depends(get_database)):
     # Insert into DB
