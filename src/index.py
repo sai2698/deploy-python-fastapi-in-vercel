@@ -1052,7 +1052,7 @@ async def get_all(db=Depends(get_database)):
     for d in docs:
         if "_id" in d:
             d["_id"] = str(d["_id"])
-    return docs[::-1]
+    return docs
     
 @app.post("/add_item")
 async def add_item(item: CatalogueItem, db=Depends(get_database)):
