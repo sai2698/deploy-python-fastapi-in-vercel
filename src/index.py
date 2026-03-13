@@ -378,7 +378,7 @@ PROFILES_COLLECTION = "profiles"
 CONTINUE_COLLECTION = "continue_watching"
 DOWNLOADS_COLLECTION = "downloads"
 USER_SETTINGS_COLLECTION = "user_settings"
-
+TV_COLLECTION = "channels"
 # =================================================
 
 app = FastAPI()
@@ -720,7 +720,13 @@ async def update_item(item_id: str, updated_item: CatalogueItem, db=Depends(get_
     return {"message": "Item updated successfully"}
 
 
-
+@app.get("/tv")
+async def get_tv(db=Depends(get_database)):
+    docs = await db[TV_COLLECTION].find({}).to_list(None)
+    for d in docs:
+        if "_id" in d:
+            d["_id"] = str(d["_id"])
+    return docs
 
 
 
